@@ -7,10 +7,15 @@ import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Random;
+import java.util.Stack;
 
 import com.shtick.apps.sh.core.Driver;
 import com.shtick.apps.sh.core.Question;
@@ -57,7 +62,11 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		}
 	}
 	private static Random RANDOM = new Random();
-	private static final String[] ARITHMETIC_OPERATORS = new String[] {"+","-","\u00D7","\u00F7"};
+	private static final String ADDITION_OPERATOR = "+";
+	private static final String SUBTRACTION_OPERATOR = "-";
+	private static final String MULTIPLICATION_OPERATOR = "\u00D7";
+	private static final String DIVISION_OPERATOR = "\u00F7";
+	private static final String[] ARITHMETIC_OPERATORS = new String[] {ADDITION_OPERATOR,SUBTRACTION_OPERATOR,MULTIPLICATION_OPERATOR,DIVISION_OPERATOR};
 	private static final String[] VOLUME_UNITS = new String[] {"cubic feet","cubic inches","cubic millimeters","cubic centimeters","cubic meters"};
 	private static final String[] AREA_UNITS = new String[] {"square feet","square inches","square millimeters","square centimeters","square meters"};
 	private static final String[] LENGTH_UNITS = new String[] {"feet","inches","millimeters","centimeters","meters"};
@@ -90,29 +99,29 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 	}
 
 	private Question generateQuestion(){
-		int type = RANDOM.nextInt(14);
+		int type = RANDOM.nextInt(17);
 		int a,b,c;
 		boolean isStory = RANDOM.nextBoolean();
 		boolean translateQuestion = RANDOM.nextBoolean();
 		int unknown = RANDOM.nextInt(3);
 		switch(type){
 		case 0:// Addition
-			a = RANDOM.nextInt(100000);
-			b = RANDOM.nextInt(100000-a);
+			a = RANDOM.nextInt(1000000);
+			b = RANDOM.nextInt(1000000-a);
 			c = a+b;
 			return generateArithmeticQuestion(a,b,c,type,unknown,isStory, translateQuestion);
 		case 1:// Subtraction
-			a = RANDOM.nextInt(100000);
+			a = RANDOM.nextInt(1000000);
 			b = RANDOM.nextInt(a+1);
 			c = a-b;
 			return generateArithmeticQuestion(a,b,c,type,unknown,isStory, translateQuestion);
 		case 2:// Multiplication
 			a = RANDOM.nextInt(1000);
-			b = RANDOM.nextInt(9)+1;
+			b = RANDOM.nextInt(100);
 			c = a*b;
 			return generateArithmeticQuestion(a,b,c,type,unknown,isStory, translateQuestion);
 		case 3:// Division
-			b = RANDOM.nextInt(9)+1;
+			b = RANDOM.nextInt(100)+1;
 			c = RANDOM.nextInt(1000);
 			a = b*c;
 			return generateArithmeticQuestion(a,b,c,type,unknown,isStory, translateQuestion);
@@ -121,430 +130,347 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		case 5:
 			return generatePrimeNumberQuestion();
 		case 6:
-			return generatePlaceValueQuestion();
+			return generateCommonDenominatorOrMultipleQuestion();
 		case 7:
-			return generateRectangleAreaQuestion();
+			return generateDecimalOperationQuestion();
 		case 8:
-			return generatePerimeterQuestion();
+			return generateAreaQuestion();
 		case 9:
-			return generatePrismSurfaceQuestion();
+			return generateRationalNumberComparisonQuestion();
 		case 10:
-			return generateVolumeQuestion();
+			return generateOppositeOrAbsoluteValueQuestion();
 		case 11:
-			return generateShapeIdentificationQuestion();
+			return generateCoordinatePlaneDistanceQuestion();
 		case 12:
-			return generateAngleClassificationQuestion();
+			return generateMedianOrMeanQuestion();
+		case 13:
+			return generatePrismSurfaceQuestion();
+		case 14:
+			return generateOrderOfOperationsQuestion();
+		case 15:
+			return generateEquationsWithTwoVariablesQuestion();
 		default:
-			return generateFindMissingAngleQuestion();
+			return generateVolumeQuestion();
 		}
 	}
 	
-	private Question generateFindMissingAngleQuestion() {
+	private Question generateRationalNumberComparisonQuestion() {
 		HashMap<String,Float> dimensions = new HashMap<>();
-		boolean triangle = RANDOM.nextBoolean();
-		if(triangle) {
-			// Find missing part of triangle.
-			int[] angles = new int[] {60+RANDOM.nextInt(31)-15,60+RANDOM.nextInt(31)-15,0};
-			angles[2] = 180-angles[0]-angles[1];
-			String shapeSVG = drawEquilateralTriangle(false, ""+angles[0]+"°", ""+angles[1]+"°", "a");
-			
-			return new Question(shapeSVG,"image/svg+xml","What is the value of the missing angle, a, in degrees?","text/plain",""+angles[2],dimensions,4);
+		int numberDigits = 5;
+		int deltaPlace = (RANDOM.nextInt(3)==0)?numberDigits:RANDOM.nextInt(numberDigits);
+		int decimalPlace = RANDOM.nextInt(numberDigits+1);
+		int[] digitsA = new int[numberDigits];
+		int[] digitsB = new int[numberDigits];
+		for(int i=0;i<deltaPlace;i++) {
+			int d = RANDOM.nextInt(10);
+			digitsA[i] = d;
+			digitsB[i] = d;
 		}
-		else {
-			// Find missing part of quadrilateral.
-			int[] angles = new int[] {90+RANDOM.nextInt(41)-20,90+RANDOM.nextInt(41)-20,90+RANDOM.nextInt(41)-20,0};
-			angles[3] = 360-angles[0]-angles[1]-angles[2];
-			String shapeSVG = drawQuadrilateral(angles[0],""+angles[0]+"°",angles[1],""+angles[1]+"°",angles[2],""+angles[2]+"°",angles[3],"a");
-			
-			return new Question(shapeSVG,"image/svg+xml","What is the value of the missing angle, a, in degrees?","text/plain",""+angles[3],dimensions,4);
-		}
-	}
-	
-	private Question generateAngleClassificationQuestion() {
-		HashMap<String,Float> dimensions = new HashMap<>();
-		Angle[] angles = Angle.values();
-		int angle = RANDOM.nextInt(angles.length);
-		boolean wordProblem = RANDOM.nextBoolean();
-		if(RANDOM.nextBoolean()) {
-			// Show angle, ask type.
-			String angleText = getAngle(wordProblem,angles[angle]);
-			
-			ArrayList<Choice> choices = new ArrayList<>(angles.length);
-			Angle[] randomAngles = Utils.getRandomArray(angles, angles.length);
-			for(Angle a:randomAngles)
-				choices.add(new Choice("text/plain", a.getNiceName(), a.toString()));
-			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "What kind of angle is this?", choices);
-			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-			
-			return new Question(angleText,wordProblem?"text/plain":"image/svg+xml",answerPrompt,"choice/radio",""+angles[angle].toString(),dimensions,4);
-		}
-		else {
-			// Show type, ask angle.
-			ArrayList<Choice> choices = new ArrayList<>(angles.length);
-			Angle[] randomAngles = Utils.getRandomArray(angles, angles.length);
-			for(Angle a:randomAngles)
-				choices.add(new Choice(wordProblem?"text/plain":"image/svg+xml", getAngle(wordProblem,a), a.toString()));
-			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of these angles is a "+angles[angle].getNiceName()+" angle?", choices);
-			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-			
-			return new Question("","text/plain",answerPrompt,"choice/radio",""+angles[angle].toString(),dimensions,4);
-		}
-	}
-	
-	private String getAngle(boolean asText, Angle angle) {
-		if(asText) {
-			int degrees;
-			if(angle==Angle.RIGHT) {
-				degrees=90;
-			}
-			else if(angle==Angle.ACUTE) {
-				degrees = RANDOM.nextInt(90);
-			}
-			else {
-				degrees = 180-RANDOM.nextInt(90);
-			}
-			return "A "+degrees+"° angle.";
-		}
-		String svg;
-		switch(angle) {
-		case ACUTE:
-			svg = "<line x1=\"70\" y1=\"40\" x2=\"10\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"10\" y1=\"90\" x2=\"90\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			break;
-		case OBTUSE:
-			svg = "<line x1=\"10\" y1=\"10\" x2=\"40\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\"40\" y1=\"90\" x2=\"90\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			break;
-		case RIGHT:
-			svg = "<line x1=\"10\" y1=\"10\" x2=\"10\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"10\" y1=\"90\" x2=\"90\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"10\" y1=\"80\" x2=\"20\" y2=\"80\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n"+
-					"<line x1=\"20\" y1=\"80\" x2=\"20\" y2=\"90\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			break;
-		default:
-			throw new IllegalArgumentException("Unsupported angle type: "+angle.toString());
-		}
-		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+svg+"</svg>";		
-	}
-	
-	private Question generateShapeIdentificationQuestion() {
-		HashMap<String,Float> dimensions = new HashMap<>();
-		int shapeClass = RANDOM.nextInt(3);
-		Shape[] shapes;
-		switch(shapeClass) {
-		case 0:{
-			// Triangles.
-			shapes = Utils.<Shape>getRandomArray(new Shape[]{Shape.RIGHT_TRIANGLE,Shape.EQUILATERAL_TRIANGLE,Shape.ISOSCELES_TRIANGLE},3);
-			break;
-		}
-		case 1:{
-			// Quadrilaterals.
-			shapes = Utils.<Shape>getRandomArray(new Shape[]{Shape.PARALLELOGRAM,Shape.RECTANGLE,Shape.RHOMBUS,Shape.SQUARE,Shape.TRAPEZOID},4);
-			break;
-		}
-		default:{
-			// Any
-			shapes = Utils.<Shape>getRandomArray(Shape.values(),4);
-			break;
-		}
-		}
-		Shape shape = shapes[RANDOM.nextInt(shapes.length)];
-		
-		if(RANDOM.nextBoolean()) {
-			// Show shape, ask name.
-			String shapeSVG = drawShape(shape);
-			
-			ArrayList<Choice> choices = new ArrayList<>(shapes.length);
-			for(Shape s:shapes)
-				choices.add(new Choice("text/plain", s.getNiceName(), s.toString()));
-			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "What kind of shape is this?", choices);
-			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-			
-			return new Question(shapeSVG,"image/svg+xml",answerPrompt,"choice/radio",""+shape.toString(),dimensions,4);
-		}
-		else {
-			// Show name, ask shape.
-			ArrayList<Choice> choices = new ArrayList<>(shapes.length);
-			for(Shape s:shapes)
-				choices.add(new Choice("image/svg+xml", drawShape(s), s.toString()));
-			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of these shapes is a "+shape.getNiceName()+"?", choices);
-			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-			
-			return new Question("","text/plain",answerPrompt,"choice/radio",""+shape.toString(),dimensions,4);
+		digitsA[deltaPlace] = RANDOM.nextInt(10);
+		digitsB[deltaPlace] = digitsA[deltaPlace]+RANDOM.nextInt(9)+1;
+		for(int i=deltaPlace+1;i<numberDigits;i++) {
+			digitsA[i] = RANDOM.nextInt(10);
+			digitsB[i] = RANDOM.nextInt(10);
 		}
 		
+		String na = "";
+		String nb = "";
+		for(int i=0;i<numberDigits;i++) {
+			if(i==decimalPlace) {
+				na+=".";
+				nb+=".";
+			}
+			na+=digitsA[i];
+			nb+=digitsB[i];
+		}
+		while(na.charAt(0)=='0')
+			na = na.substring(1);
+		while(nb.charAt(0)=='0')
+			nb = nb.substring(1);
+		while(na.charAt(na.length()-1)=='0')
+			na = na.substring(0,na.length()-1);
+		while(nb.charAt(nb.length()-1)=='0')
+			nb = nb.substring(0,nb.length()-1);
+		if(na.length()==0)
+			na = "0";
+		if(nb.length()==0)
+			nb = "0";
+		if(na.charAt(0)=='.')
+			na = "0"+na;
+		if(nb.charAt(0)=='.')
+			nb = "0"+nb;
+		if(na.charAt(na.length()-1)=='.')
+			na = na.substring(0,na.length()-1);
+		if(nb.charAt(nb.length()-1)=='.')
+			nb = nb.substring(0,nb.length()-1);
+		
+		String answer;
+		if(na.equals(nb))
+			answer = "=";
+		else if(Double.parseDouble(na)<Double.parseDouble(nb))
+			answer = "<";
+		else
+			answer = ">";
+
+		Choice[] choiceArray = new Choice[] {
+				new Choice("text/plain", na + "<" + nb, "<"),
+				new Choice("text/plain", na + "=" + nb, "="),
+				new Choice("text/plain", na + ">" + nb, ">")
+		};
+		choiceArray = Utils.getRandomArray(choiceArray, choiceArray.length);
+		ArrayList<Choice> choices = new ArrayList<>(choiceArray.length);
+		for(Choice choice:choiceArray)
+			choices.add(choice);
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "", choices);
+		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		return new Question("Which is true?","text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
 	}
 	
-	/**
-	 * This does not draw the quadrilateral exactly to spec, but seeks to draw an approximate figure based on the supplied angles.
-	 * @param angle1
-	 * @param label1
-	 * @param angle2
-	 * @param label2
-	 * @param angle3
-	 * @param label3
-	 * @param angle4
-	 * @param label4
-	 * @return
-	 */
-	private String drawQuadrilateral(int angle1,String label1,int angle2,String label2,int angle3,String label3,int angle4,String label4) {
-		Point2D points[] = new Point2D[4];
-		int angles[] = {angle1,angle2,angle3,angle4};
-		String labels[] = {label1,label2,label3,label4};
-		AffineTransform translationStep = AffineTransform.getTranslateInstance(50,50);
-		for(int i=0;i<4;i++) {
-			AffineTransform rotationStep = AffineTransform.getRotateInstance(Math.PI*i/2, 0, 0);
-			if(angles[i]==90) {
-				points[i] = new Point2D.Float(20, 20);
-			}
-			else if(angles[i]>90) {
-				points[i] = new Point2D.Float(10, 10);
-			}
-			else if(angles[i]<90) {
-				points[i] = new Point2D.Float(30, 30);
-			}
-			rotationStep.transform(points[i],points[i]);
-			translationStep.transform(points[i],points[i]);
+	private Question generateOppositeOrAbsoluteValueQuestion() {
+		HashMap<String,Float> dimensions = new HashMap<>();
+		int i = RANDOM.nextInt(100000);
+		if(RANDOM.nextBoolean())
+			i=-i;
+		boolean absoluteValue = RANDOM.nextBoolean();
+		String answer;
+		String question;
+		if(absoluteValue) {
+			answer = ""+Math.abs(i);
+			question = "What is the absolute value of this number?";
 		}
-		String shapeSVG = "";
-		for(int i=0;i<3;i++) {
-			shapeSVG += "<line x1=\""+points[i].getX()+"\" y1=\""+points[i].getY()+"\" x2=\""+points[i+1].getX()+"\" y2=\""+points[i+1].getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
+		else {
+			answer = ""+(-i);
+			question = "What is the opposite value of this number?";
 		}
-		shapeSVG += "<line x1=\""+points[0].getX()+"\" y1=\""+points[0].getY()+"\" x2=\""+points[3].getX()+"\" y2=\""+points[3].getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-		for(int i=0;i<4;i++) {
-			if((labels[i]!=null)&&(labels[i].length()>0)) {
-				shapeSVG+="<text x=\""+((points[i].getX()>50)?(points[i].getX()+7):(points[i].getX()-8*(""+angles[i]).length()))+"\" y=\""+((points[i].getY()>50)?(points[i].getY()+15):points[i].getY())+"\">"+labels[i]+"</text>\n";
-			}
+		if(RANDOM.nextBoolean()) {
+			return new Question(""+i,"text/plain",question,"text/plain",answer,dimensions,4);
 		}
-		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+shapeSVG+"</svg>";
+		Choice[] choiceArray = new Choice[] {
+				new Choice("text/plain", ""+i, ""+i),
+				(i>0)?new Choice("text/plain", ""+(-i), ""+(-i)):new Choice("text/plain", "100", "100"),
+				null,null
+		};
+		if(i>=2) {
+			choiceArray[2] = new Choice("text/plain", ""+(i*2), "false");
+			choiceArray[3] = new Choice("text/plain", ""+(i/2), "alsoFalse");
+		}
+		else {
+			choiceArray[2] = new Choice("text/plain", ""+(i+2), "false");
+			choiceArray[3] = new Choice("text/plain", ""+(i-2), "alsoFalse");
+		}
+		choiceArray = Utils.getRandomArray(choiceArray, choiceArray.length);
+		ArrayList<Choice> choices = new ArrayList<>(4);
+		for(Choice choice:choiceArray)
+			choices.add(choice);
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "", choices);
+		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		return new Question("Which is true?","text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
 	}
 	
-	private String drawEquilateralTriangle(boolean includeTicks,String label1,String label2,String label3) {
-		Point2D p1 = new Point2D.Float(50, 15);
-		Point2D p2 = new Point2D.Float();
-		Point2D p3 = new Point2D.Float();
-		AffineTransform rotationStep = AffineTransform.getRotateInstance(Math.PI*2/3, 50, 50);
-		rotationStep.transform(p1, p2);
-		rotationStep.transform(p2, p3);
-		Point2D tick1 = new Point2D.Float(0, 5);
-		Point2D tick2 = new Point2D.Float(0, -5);
-		String shapeSVG;
-		shapeSVG = "<line x1=\""+p1.getX()+"\" y1=\""+p1.getY()+"\" x2=\""+p2.getX()+"\" y2=\""+p2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\""+p2.getX()+"\" y1=\""+p2.getY()+"\" x2=\""+p3.getX()+"\" y2=\""+p3.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\""+p3.getX()+"\" y1=\""+p3.getY()+"\" x2=\""+p1.getX()+"\" y2=\""+p1.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-		if(includeTicks){
-			{
-				Point2D lp1 = p1;
-				Point2D lp2 = p2;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(Math.PI/3, 0, 0);
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			{
-				Point2D lp1 = p2;
-				Point2D lp2 = p3;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				tp1.setLocation(tick1.getX()+center.getX(), tick1.getY()+center.getY());
-				tp2.setLocation(tick2.getX()+center.getX(), tick2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			{
-				Point2D lp1 = p3;
-				Point2D lp2 = p1;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(-Math.PI/3, 0, 0);
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-		}
-		if((label1!=null)&&(label1.length()>0)) {
-			shapeSVG+="<text x=\""+p1.getX()+"\" y=\""+p1.getY()+"\">"+label1+"</text>\n";
-		}
-		if((label2!=null)&&(label2.length()>0)) {
-			shapeSVG+="<text x=\""+p2.getX()+"\" y=\""+(p2.getY()+15)+"\">"+label2+"</text>\n";
-		}
-		if((label3!=null)&&(label3.length()>0)) {
-			shapeSVG+="<text x=\""+p3.getX()+"\" y=\""+(p3.getY()+15)+"\">"+label3+"</text>\n";
-		}
-		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+shapeSVG+"</svg>";
+	private Question generateCoordinatePlaneDistanceQuestion() {
+		HashMap<String,Float> dimensions = new HashMap<>();
+		Point point1 = new Point(RANDOM.nextInt(21)-10,RANDOM.nextInt(21)-10);
+		Point point2 = new Point(RANDOM.nextInt(21)-10,RANDOM.nextInt(21)-10);
+		while(point2.equals(point1))
+			point2 = new Point(RANDOM.nextInt(21)-10,RANDOM.nextInt(21)-10);
+		
+		String svg = getCoordinatePlaneDrawing(point1, point2);
+		String answer =""+Math.sqrt((point1.x-point2.x)*(point1.x-point2.x)+(point1.y-point2.y)*(point1.y-point2.y));
+		String[] choiceArray = new String[] {
+			answer,
+			""+(Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y)),
+			""+(Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y))/2
+		};
+		choiceArray = Utils.getRandomArray(choiceArray, choiceArray.length);
+		ArrayList<Choice> choices = new ArrayList<>(4);
+		for(String choice:choiceArray)
+			choices.add(new Choice("text/plain", choice, choice));
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "You have two points on a grid, ("+point1.x+","+point1.y+") and ("+point2.x+","+point2.y+"). Which of these values best represents the distance between these two points?", choices);
+		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		return new Question(svg,"image/svg+xml",answerPrompt,"choice/radio",answer,dimensions,4);
 	}
 	
-	private String drawShape(Shape s) {
-		String shapeSVG;
-		switch(s) {
-		case EQUILATERAL_TRIANGLE:{
-			return drawEquilateralTriangle(true,null,null,null);
+	private Question generateMedianOrMeanQuestion() {
+		HashMap<String,Float> dimensions = new HashMap<>();
+		ArrayList<Integer> values = new ArrayList<>(5);
+		for(int i=0;i<4;i++)
+			values.add(RANDOM.nextInt(100));
+		if(RANDOM.nextBoolean())
+			values.add(RANDOM.nextInt(100));
+		ArrayList<Integer> sortedValues = new ArrayList<>(values);
+		Collections.sort(sortedValues);
+		HashSet<String> answerSet = new HashSet<>(4);
+		String median = ""+((sortedValues.size()%2==1)?(sortedValues.get(sortedValues.size()/2)+sortedValues.get(sortedValues.size()/2-1))/2.0:sortedValues.get(sortedValues.size()/2));
+		String badMedian = ""+((sortedValues.size()%2==1)?(values.get(values.size()/2)+values.get(values.size()/2-1))/2.0:values.get(values.size()/2));
+		double calc = 0;
+		for(Integer value:values)
+			calc+=value;
+		calc /= values.size();
+		String mean = ""+calc;
+		String badMean = ""+((sortedValues.get(0)+sortedValues.get(sortedValues.size()-1))/2.0);
+
+
+		boolean isMedian = RANDOM.nextBoolean();
+		String answer = isMedian?median:mean;
+		answerSet.add(median);
+		answerSet.add(badMedian);
+		answerSet.add(mean);
+		answerSet.add(badMean);
+		answerSet.add(""+sortedValues.get(0).doubleValue());
+		answerSet.add(""+sortedValues.get(sortedValues.size()-1).doubleValue());
+		
+		Object[] choiceArray = Utils.getRandomArray(answerSet.toArray(), 4);
+		choiceArray = Utils.getRandomArray(choiceArray, choiceArray.length);
+		ArrayList<Choice> choices = new ArrayList<>(4);
+		boolean answerFound = false;
+		for(Object choice:choiceArray) {
+			if(choice == answer)
+				answerFound = true;
+			choices.add(new Choice("text/plain", choice.toString(), choice.toString()));
 		}
-		case ISOSCELES_TRIANGLE:{
-			Point2D p1 = new Point2D.Float(50, 10);
-			Point2D p2 = new Point2D.Float();
-			Point2D p3 = new Point2D.Float();
-			AffineTransform rotationStep1 = AffineTransform.getRotateInstance(Math.PI*5/6, 50, 50);
-			AffineTransform rotationStep2 = AffineTransform.getRotateInstance(-Math.PI*5/6, 50, 50);
-			rotationStep1.transform(p1, p2);
-			rotationStep2.transform(p1, p3);
-			Point2D tick1 = new Point2D.Float(0, 5);
-			Point2D tick2 = new Point2D.Float(0, -5);
-			shapeSVG = "<line x1=\""+p1.getX()+"\" y1=\""+p1.getY()+"\" x2=\""+p2.getX()+"\" y2=\""+p2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\""+p2.getX()+"\" y1=\""+p2.getY()+"\" x2=\""+p3.getX()+"\" y2=\""+p3.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\""+p3.getX()+"\" y1=\""+p3.getY()+"\" x2=\""+p1.getX()+"\" y2=\""+p1.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			{
-				Point2D lp1 = p1;
-				Point2D lp2 = p2;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(Math.PI/3, 0, 0);
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
+		if(!answerFound)
+			choices.set(RANDOM.nextInt(4), new Choice("text/plain", answer, answer));
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of the following is the "+(isMedian?"median":"mean")+" value of this list of numbers?", choices);
+		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		String valueList = "";
+		for(Integer value:values) {
+			if(valueList.length()>0)
+				valueList += ", ";
+			valueList+=value;
+		}
+		return new Question("","image/svg+xml",answerPrompt,"choice/radio",answer,dimensions,4);
+	}
+	
+	private String getCoordinatePlaneDrawing(Point ... points) {
+		String axes = "<line x1=\"50\" y1=\"5\" x2=\"50\" y2=\"95\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"50\" x2=\"95\" y2=\"50\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"50\" y1=\"5\" x2=\"55\" y2=\"10\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"50\" y1=\"5\" x2=\"45\" y2=\"10\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"50\" x2=\"10\" y2=\"55\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"50\" x2=\"10\" y2=\"45\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
+		String grid = "<line x1=\"5\" y1=\"5\" x2=\"5\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"10\" y1=\"5\" x2=\"10\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"15\" y1=\"5\" x2=\"15\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"20\" y1=\"5\" x2=\"20\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"25\" y1=\"5\" x2=\"25\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"30\" y1=\"5\" x2=\"30\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"35\" y1=\"5\" x2=\"35\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"40\" y1=\"5\" x2=\"40\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"45\" y1=\"5\" x2=\"45\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"55\" y1=\"5\" x2=\"55\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"60\" y1=\"5\" x2=\"60\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"65\" y1=\"5\" x2=\"65\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"70\" y1=\"5\" x2=\"70\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"75\" y1=\"5\" x2=\"75\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"80\" y1=\"5\" x2=\"80\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"85\" y1=\"5\" x2=\"85\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"90\" y1=\"5\" x2=\"90\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"95\" y1=\"5\" x2=\"95\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"5\" x2=\"95\" y2=\"5\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"10\" x2=\"95\" y2=\"10\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"15\" x2=\"95\" y2=\"15\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"20\" x2=\"95\" y2=\"20\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"25\" x2=\"95\" y2=\"25\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"30\" x2=\"95\" y2=\"30\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"35\" x2=\"95\" y2=\"35\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"40\" x2=\"95\" y2=\"40\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"45\" x2=\"95\" y2=\"45\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"55\" x2=\"95\" y2=\"55\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"60\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"65\" x2=\"95\" y2=\"65\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"70\" x2=\"95\" y2=\"70\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"75\" x2=\"95\" y2=\"75\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"80\" x2=\"95\" y2=\"80\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"85\" x2=\"95\" y2=\"85\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"90\" x2=\"95\" y2=\"90\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"95\" x2=\"95\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n";
+		String pointDrawing = "";
+		for(Point point:points)
+			pointDrawing+="<circle cx=\""+((point.x*5)+50)+"\" cy=\""+(50-(point.y*5))+"\" r=\"3\" stroke=\"black\" stroke-width=\"1\" fill=\"black\" />\n";
+		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+axes+grid+pointDrawing+"</svg>";
+	}
+
+	private Question generateDecimalOperationQuestion(){
+		HashMap<String,Float> dimensions = new HashMap<>();
+		
+		int type = RANDOM.nextInt(4);
+		int a, b, c;
+		int da, db, dc; // The number of decimal places in the various parts of the equation.
+		String op;
+		switch(type) {
+		case 0: // +
+			op = "+";
+			a = RANDOM.nextInt(1000000);
+			b = RANDOM.nextInt(1000000-a);
+			da = RANDOM.nextInt(3)+1;
+			db = RANDOM.nextInt(3)+1;
+			dc = Math.max(da, db);
+			while(da<dc) {
+				a*=10;
+				da++;
 			}
-			{
-				Point2D lp1 = p2;
-				Point2D lp2 = p3;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				tp1.setLocation(tick1.getX()+center.getX(), tick1.getY()+center.getY());
-				tp2.setLocation(tick2.getX()+center.getX(), tick2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+(tp1.getX()+2)+"\" y1=\""+tp1.getY()+"\" x2=\""+(tp2.getX()+2)+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-				shapeSVG+="<line x1=\""+(tp1.getX()-2)+"\" y1=\""+tp1.getY()+"\" x2=\""+(tp2.getX()-2)+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
+			while(db<dc) {
+				b*=10;
+				db++;
 			}
-			{
-				Point2D lp1 = p3;
-				Point2D lp2 = p1;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(-Math.PI/3, 0, 0);
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
+			c=a+b;
+			break;
+		case 1: // -
+			op = "-";
+			a = RANDOM.nextInt(1000000);
+			b = RANDOM.nextInt(1000000);
+			da = RANDOM.nextInt(3)+1;
+			db = RANDOM.nextInt(3)+1;
+			dc = Math.max(da, db);
+			while(da<dc) {
+				a*=10;
+				da++;
 			}
+			while(db<dc) {
+				b*=10;
+				db++;
+			}
+			if(da>db) {
+				int t = a;
+				a=b;
+				b=t;
+			}
+			c=a-b;
+			break;
+		case 2: // *
+			op = "×";
+			a = RANDOM.nextInt(1000);
+			b = RANDOM.nextInt(100);
+			c = a*b;
+			da = RANDOM.nextInt(2)+1;
+			db = RANDOM.nextInt(2);
+			dc = da+db;
+			break;
+		default: // ÷
+			op = "÷";
+			b = RANDOM.nextInt(100)+1;
+			c = RANDOM.nextInt(1000);
+			a = b*c;
+			da = RANDOM.nextInt(2)+1;
+			db = RANDOM.nextInt(2);
+			dc = da+db;
 			break;
 		}
-		case PARALLELOGRAM:
-			shapeSVG = "<line x1=\"5\" y1=\"20\" x2=\"60\" y2=\"20\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"40\" y1=\"60\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"5\" y1=\"20\" x2=\"40\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"60\" y1=\"20\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			break;
-		case RECTANGLE:
-			shapeSVG = "<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\" style=\"fill:rgb(255,255,255);stroke-width:2;stroke:rgb(0,0,0)\" />\n";
-			break;
-		case RHOMBUS:{
-			Point2D p1 = new Point2D.Float(50, 10);
-			Point2D p2 = new Point2D.Float(75,50);
-			Point2D p3 = new Point2D.Float(50, 90);
-			Point2D p4 = new Point2D.Float(25,50);
-			Point2D tick1 = new Point2D.Float(0, 5);
-			Point2D tick2 = new Point2D.Float(0, -5);
-			shapeSVG = "<line x1=\""+p1.getX()+"\" y1=\""+p1.getY()+"\" x2=\""+p2.getX()+"\" y2=\""+p2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\""+p2.getX()+"\" y1=\""+p2.getY()+"\" x2=\""+p3.getX()+"\" y2=\""+p3.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\""+p3.getX()+"\" y1=\""+p3.getY()+"\" x2=\""+p4.getX()+"\" y2=\""+p4.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\""+p4.getX()+"\" y1=\""+p4.getY()+"\" x2=\""+p1.getX()+"\" y2=\""+p1.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			Point2D topCenter = new Point2D.Double((p1.getX()+p2.getX()+p4.getX())/3,(p1.getY()+p2.getY()+p4.getY())/3);
-			Point2D bottomCenter = new Point2D.Double((p3.getX()+p2.getX()+p4.getX())/3,(p3.getY()+p2.getY()+p4.getY())/3);
-			{
-				Point2D lp1 = p1;
-				Point2D lp2 = p2;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(Math.PI/3, topCenter.getX(), topCenter.getY());
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			{
-				Point2D lp1 = p4;
-				Point2D lp2 = p1;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(-Math.PI/3, topCenter.getX(), topCenter.getY());
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			{
-				Point2D lp1 = p1;
-				Point2D lp2 = p2;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(Math.PI*2/3, bottomCenter.getX(), bottomCenter.getY());
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			{
-				Point2D lp1 = p4;
-				Point2D lp2 = p1;
-				Point2D center = new Point2D.Double((lp1.getX()+lp2.getX())/2,(lp1.getY()+lp2.getY())/2);
-				Point2D tp1 = new Point2D.Float();
-				Point2D tp2 = new Point2D.Float();
-				AffineTransform rotation = AffineTransform.getRotateInstance(-Math.PI*2/3, bottomCenter.getX(), bottomCenter.getY());
-				rotation.transform(tick1, tp1);
-				rotation.transform(tick2, tp2);
-				tp1.setLocation(tp1.getX()+center.getX(), tp1.getY()+center.getY());
-				tp2.setLocation(tp2.getX()+center.getX(), tp2.getY()+center.getY());
-				shapeSVG+="<line x1=\""+tp1.getX()+"\" y1=\""+tp1.getY()+"\" x2=\""+tp2.getX()+"\" y2=\""+tp2.getY()+"\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			}
-			break;
-		}
-		case RIGHT_TRIANGLE:
-			shapeSVG = "<line x1=\"5\" y1=\"20\" x2=\"5\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"85\" y1=\"60\" x2=\"5\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"85\" y1=\"60\" x2=\"5\" y2=\"20\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"5\" y1=\"55\" x2=\"10\" y2=\"55\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n"+
-					"<line x1=\"10\" y1=\"60\" x2=\"10\" y2=\"55\" style=\"stroke:rgb(0,0,0);stroke-width:1\" />\n";
-			break;
-		case SQUARE:
-			shapeSVG = "<rect x=\"10\" y=\"10\" width=\"80\" height=\"80\" style=\"fill:rgb(255,255,255);stroke-width:2;stroke:rgb(0,0,0)\" />\n";
-			break;
-		case TRAPEZOID:
-			shapeSVG = "<line x1=\"40\" y1=\"20\" x2=\"60\" y2=\"20\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"5\" y1=\"60\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"40\" y1=\"20\" x2=\"5\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-					"<line x1=\"60\" y1=\"20\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-			break;
-		default:
-			throw new IllegalArgumentException("Unsupported shape type: "+s.toString());
-		}
-		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+shapeSVG+"</svg>";		
+		
+		DecimalNumber dna = new DecimalNumber(a, da);
+		DecimalNumber dnb = new DecimalNumber(b, db);
+		DecimalNumber dnc = new DecimalNumber(c, dc);
+		
+		return new Question(dna.toString() +" "+ op +" "+ dnb.toString() + " = ?","text/plain","Solve the decimal problem.","text/plain",""+dnc.toString(),dimensions,4);
 	}
 	
 	private Question generateFractionOperationQuestion(){
 		HashMap<String,Float> dimensions = new HashMap<>();
 		int type = RANDOM.nextInt(4);
-		int na = RANDOM.nextInt(15)+2;
-		int nb = RANDOM.nextInt(15)+2;
-		int da = RANDOM.nextInt(11)+2;
-		int db = RANDOM.nextInt(11)+2;
+		int na = RANDOM.nextInt(29)+2;
+		int nb = RANDOM.nextInt(29)+2;
+		int da = RANDOM.nextInt(14)+2;
+		int db = RANDOM.nextInt(14)+2;
 		String op;
 		String answer;
 		switch(type) {
@@ -594,12 +520,146 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
         	return p;
     	return gcd(q, p % q);
     }
+    
+    private Question generateOrderOfOperationsQuestion() {
+		HashMap<String,Float> dimensions = new HashMap<>();
+    	int[] numbers = new int[] {RANDOM.nextInt(10)+1,RANDOM.nextInt(10)+1,RANDOM.nextInt(10)+1,RANDOM.nextInt(10)+1};
+    	String[] operators = new String[] {ARITHMETIC_OPERATORS[RANDOM.nextInt(4)],ARITHMETIC_OPERATORS[RANDOM.nextInt(4)],ARITHMETIC_OPERATORS[RANDOM.nextInt(4)]};
+    	String[] openingBrackets = new String[] {"","","",""};
+    	String[] closingBrackets = new String[] {"","","",""};
+    	LinkedList<int[]> bracketIndicies = new LinkedList<int[]>();
+    	int begin = 0;
+    	int end = numbers.length-1;
+    	while(end-begin >= 2) {
+    		int a = RANDOM.nextInt(end-begin);
+    		int b = RANDOM.nextInt(end-begin);
+    		if(b<a) {
+    			int t=b;
+    			b=a;
+    			a=t;
+    		}
+    		if(b-a==0)
+    			break;
+    		if((a==begin)&&(b==end))
+    			break;
+    		openingBrackets[a]+="(";
+    		closingBrackets[b]+=")";
+    		bracketIndicies.add(new int[] {a,b});
+    		begin=a;
+    		end=b;
+    	}
+    	Stack<Expression> expressionStack = new Stack<>();
+    	int nextBracketIndex = 0;;
+    	Expression expression = new Expression();
+    	Expression flatExpression = new Expression();
+    	for(int i=0;i<numbers.length;i++) {
+    		if(i>0) {
+    			expression.appendPart(operators[i-1]);
+    			flatExpression.appendPart(operators[i-1]);
+    		}
+    		if(nextBracketIndex<bracketIndicies.size()) {
+    			if(bracketIndicies.get(nextBracketIndex)[0]==i) {
+    				expressionStack.push(expression);
+    				expression = new Expression();
+    				nextBracketIndex++;
+    			}
+    		}
+    		expression.appendPart(numbers[i]);
+    		flatExpression.appendPart(numbers[i]);
+    		if(nextBracketIndex>0) {
+    			if(bracketIndicies.get(nextBracketIndex-1)[1]==i) {
+    				Expression x = expression;
+    				expression = expressionStack.pop();
+    				expression.appendPart(x);
+    				nextBracketIndex--;
+    			}
+    		}
+    	}
+    	Number answer = expression.evaluate();
+    	LinkedList<Number> answerList = new LinkedList<>();
+    	answerList.add(answer);
+    	answerList.add(expression.evaluateWrong());
+    	answerList.add(flatExpression.evaluate());
+    	answerList.add(flatExpression.evaluateWrong());
+    	Collections.<Number>sort(answerList,(Number a, Number b)->{
+    		double d1=a.doubleValue();
+    		double d2=b.doubleValue();
+    		if(d1<d2)
+    			return -1;
+    		else if(d1>d2)
+    			return 1;
+    		return 0;
+    	});
+    	ListIterator<Number> answerIterator = answerList.listIterator();
+    	Number last = answerIterator.next();
+    	while(answerIterator.hasNext()) {
+    		Number next = answerIterator.next();
+    		double delta = next.doubleValue()-last.doubleValue();
+    		if(delta<0.1) {
+    			if(next==answer) {
+    				answerIterator.previous();
+    				answerIterator.previous();
+    				answerIterator.remove();
+    				answerIterator.next();
+    				last = next;
+    			}
+    			else {
+    				answerIterator.remove();
+    			}
+    		}
+    		else {
+    			last = next;
+    		}
+    	}
+    	while(answerList.size()<4) {
+    		boolean prepend = RANDOM.nextBoolean();
+    		double adjustment = RANDOM.nextInt(3)+(1/(RANDOM.nextInt(4)+1));
+    		if(prepend) {
+    			double d = answerList.getFirst().doubleValue()-adjustment;
+    			answerList.addFirst(d);
+    		}
+    		else {
+    			double d = answerList.getFirst().doubleValue()+adjustment;
+    			answerList.addLast(d);
+    		}
+    	}
+		ArrayList<Choice> choices = new ArrayList<>(4);
+		for(Number n:answerList) {
+			String s = cleanDoubleString(n.doubleValue());
+			choices.add(new Choice("text/plain", s, s));
+		}
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "How does this expression evaluate?", choices);
+		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		
+		return new Question(expression.toString(),"text/plain",answerPrompt,"choice/radio",cleanDoubleString(answer.doubleValue()),dimensions,4);
+    }
+    
+    private Question generateEquationsWithTwoVariablesQuestion() {
+		HashMap<String,Float> dimensions = new HashMap<>();
+		int x = RANDOM.nextInt(11)-5;
+		int y = RANDOM.nextInt(11)-5;
+    	int[] eq1 = new int[] {RANDOM.nextInt(11)-5,RANDOM.nextInt(11)-5};
+    	int[] eq2 = new int[] {RANDOM.nextInt(11)-5,RANDOM.nextInt(11)-5};
+    	int c1 = eq1[0]*x+eq1[1]*y;
+    	int c2 = eq2[0]*x+eq2[1]*y;
+    	boolean solveForX = RANDOM.nextBoolean();
+    	String answer = ""+(solveForX?x:y);
+    	String eqString1 = eq1[0]+"x "+((eq1[1]<0)?"-":"+")+" "+Math.abs(eq1[1])+"y = "+c1;
+    	String eqString2 = eq2[0]+"x "+((eq2[1]<0)?"-":"+")+" "+Math.abs(eq2[1])+"y = "+c2;
+    	
+		return new Question(eqString1+"\n"+eqString2,"text/plain","What is the value of "+(solveForX?"x":"y")+"?","text/plain",answer,dimensions,4);
+    }
+    
+    private String cleanDoubleString(double d) {
+    	String s = String.format("%.8f", d);
+    	return s.contains(".") ? s.replaceAll("0*$","").replaceAll("\\.$","") : s;
+    }
 	
 	private Question generatePrismSurfaceQuestion(){
 		HashMap<String,Float> dimensions = new HashMap<>();
-		int w = RANDOM.nextInt(20)+10;
-		int h = RANDOM.nextInt(15)+4;
-		int d = RANDOM.nextInt(15)+4;
+		int w = RANDOM.nextInt(40)+10;
+		int h = RANDOM.nextInt(25)+4;
+		int d = RANDOM.nextInt(25)+4;
 		int answer = h*w*2+h*d*2+w*d*2;
 		int unit = RANDOM.nextInt(LENGTH_UNITS.length);
 
@@ -630,14 +690,14 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			boolean cube = RANDOM.nextBoolean();
 			int w,h,d;
 			if(cube) {
-				w = RANDOM.nextInt(15)+4;
+				w = RANDOM.nextInt(25)+4;
 				h = w;
 				d = w;
 			}
 			else {
-				w = RANDOM.nextInt(15)+4;
-				h = RANDOM.nextInt(15)+4;
-				d = RANDOM.nextInt(15)+4;
+				w = RANDOM.nextInt(25)+4;
+				h = RANDOM.nextInt(25)+4;
+				d = RANDOM.nextInt(25)+4;
 			}
 			int answer = h*w*d;
 			if(cube) {
@@ -739,173 +799,211 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		return retval;
 	}
 	
-	private Question generateRectangleAreaQuestion(){
+	private Question generateAreaQuestion(){
 		HashMap<String,Float> dimensions = new HashMap<>();
-		boolean square = RANDOM.nextBoolean();
-		int w = RANDOM.nextInt(100);
-		int h = square?w:RANDOM.nextInt(100);
-		int max = Math.max(w, h);
-		int area = w*h;
-		int unit = RANDOM.nextInt(LENGTH_UNITS.length);
-		int constrainingSquareLength = 100;
-
-		int drawingWidth = Math.max(constrainingSquareLength*w/max,15);
-		int drawingHeight = Math.max(constrainingSquareLength*h/max,15);
 		
-		return new Question("<svg width=\""+(constrainingSquareLength+75)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
-			"<rect x=\"25\" y=\"25\" width=\""+drawingWidth+"\" height=\""+drawingHeight+"\" style=\"stroke-width:3;stroke:rgb(0,0,0)\" />\n" + 
-			"<text x=\""+(drawingWidth/2+15)+"\" y=\""+(drawingHeight+40)+"\">"+w+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
-			"<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+25)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
-			"</svg>","image/svg+xml","What is the area of this "+(square?"square":"rectangle")+" in "+AREA_UNITS[unit]+".","text/plain",""+area,dimensions,4);
-	}
-	
-	private Question generatePerimeterQuestion(){
-		HashMap<String,Float> dimensions = new HashMap<>();
-		boolean simple = RANDOM.nextBoolean();
-		int unit = RANDOM.nextInt(LENGTH_UNITS.length);
-		if(simple) {
-			int constrainingSquareLength = 100;
+		int type = RANDOM.nextInt(4);
+		int constrainingSquareLength = 100;
+		switch(type) {
+		case 0: { // rectangle
 			boolean square = RANDOM.nextBoolean();
-			int w = RANDOM.nextInt(100);
-			int h = square?w:RANDOM.nextInt(100);
+			int w = RANDOM.nextInt(1000)+1;
+			int h = square?w:RANDOM.nextInt(1000)+1;
 			int max = Math.max(w, h);
-			int perimeter = w*2+h*2;
+			int area = w*h;
+			int unit = RANDOM.nextInt(LENGTH_UNITS.length);
 
 			int drawingWidth = Math.max(constrainingSquareLength*w/max,15);
 			int drawingHeight = Math.max(constrainingSquareLength*h/max,15);
-
+			
 			return new Question("<svg width=\""+(constrainingSquareLength+75)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
-					"<rect x=\"25\" y=\"25\" width=\""+drawingWidth+"\" height=\""+drawingHeight+"\" style=\"stroke-width:3;stroke:rgb(0,0,0)\" />\n" + 
-					"<text x=\""+(drawingWidth/2+15)+"\" y=\""+(drawingHeight+40)+"\">"+w+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
-					"<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+25)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
-					"</svg>","image/svg+xml","What is the perimeter of this "+(square?"square":"rectangle")+" in "+LENGTH_UNITS[unit]+".","text/plain",""+perimeter,dimensions,4);
+				"<rect x=\"25\" y=\"25\" width=\""+drawingWidth+"\" height=\""+drawingHeight+"\" style=\"stroke-width:3;stroke:rgb(0,0,0)\" />\n" + 
+				"<text x=\""+(drawingWidth/2+15)+"\" y=\""+(drawingHeight+40)+"\">"+w+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
+				"<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+25)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
+				"</svg>","image/svg+xml","What is the area of this "+(square?"square":"rectangle")+" in "+AREA_UNITS[unit]+".","text/plain",""+area,dimensions,4);
 		}
-		
-		int constrainingSquareLength = 200;
-		int sides = 5+RANDOM.nextInt(2);
-		LinkedList<Point> points = new LinkedList<>();
-		LinkedList<Integer> lengths = new LinkedList<>();
-		int scale = RANDOM.nextInt(2000/constrainingSquareLength)+1;
-		int perimeter = 0;
-		int l;
-		String shapeDescription = "";
-		Point midpoint;
-		for(int i=0;i<sides;i++) {
-			double angle = Math.PI * 2 * i / sides;
-			int r = RANDOM.nextInt(constrainingSquareLength*2/5)+constrainingSquareLength/10;
-			Point point = new Point((int)(Math.cos(angle)*r+constrainingSquareLength/2), (int)(Math.sin(angle)*r+constrainingSquareLength/2));
-			shapeDescription+="<circle cx=\""+point.x+"\" cy=\""+point.y+"\" r=\"1\" stroke=\"black\" stroke-width=\"5\" fill=\"black\" />";
-			if(points.size()>0) {
-				l = (int)point.distance(points.getLast())*scale;
-				lengths.add(l);
-				perimeter+=l;
-				shapeDescription+="<line x1=\""+points.getLast().x+"\" y1=\""+points.getLast().y+"\" x2=\""+point.x+"\" y2=\""+point.y+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-				midpoint = new Point((point.x + points.getLast().x)/2, (point.y + points.getLast().y)/2);
-				int adjustY = -2;
-				int adjustX = 2;
-				if((point.x-points.getLast().x)*(point.y - points.getLast().y)<0) {
-					adjustY = 17;
-					adjustX = 0;
-				}
-				shapeDescription+="<text x=\""+(midpoint.x+adjustX)+"\" y=\""+(midpoint.y+adjustY)+"\" fill=\"rgb(128,0,0)\">"+l+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
-			}
-			points.add(point);
-		}
-		l = (int)points.getFirst().distance(points.getLast())*scale;
-		lengths.add(l);
-		perimeter+=l;
-		shapeDescription+="<line x1=\""+points.getLast().x+"\" y1=\""+points.getLast().y+"\" x2=\""+points.getFirst().x+"\" y2=\""+points.getFirst().y+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-		midpoint = new Point((points.getFirst().x + points.getLast().x)/2, (points.getFirst().y + points.getLast().y)/2);
-		int adjustY = -2;
-		int adjustX = 2;
-		if((points.getFirst().x-points.getLast().x)*(points.getFirst().y - points.getLast().y)<0) {
-			adjustY = 17;
-			adjustX = 0;
-		}
-		shapeDescription+="<text x=\""+(midpoint.x+adjustX)+"\" y=\""+(midpoint.y+adjustY)+"\" fill=\"rgb(128,0,0)\">"+l+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+		case 1: { // parallelogram
+			int w = RANDOM.nextInt(1000)+1;
+			int h = RANDOM.nextInt(1000)+1;
+			int max = Math.max((int)(w*1.3), h);
+			int area = w*h;
+			int unit = RANDOM.nextInt(LENGTH_UNITS.length);
 
-		return new Question("<svg width=\""+(constrainingSquareLength+75)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" +
-				shapeDescription +
-				"</svg>","image/svg+xml","What is the perimeter of this shape in "+LENGTH_UNITS[unit]+"?","text/plain",""+perimeter,dimensions,4);
-	}
-	
-	private Question generatePlaceValueQuestion(){
-		HashMap<String,Float> dimensions = new HashMap<>();
-		int[] placeValues = new int[12];
-		int place = RANDOM.nextInt(placeValues.length);
-		int placeValue = (place==0)?(RANDOM.nextInt(9)+1):RANDOM.nextInt(10);
-		String number = "";
-		boolean pickValueForPlace = RANDOM.nextBoolean();
-		for(int i=0;i<12;i++) {
-			if(i==place) {
-				placeValues[i] = placeValue;
+			int drawingWidth = Math.max((int)(constrainingSquareLength*w*1.3/max),15);
+			int drawingHeight = Math.max(constrainingSquareLength*h/max,15);
+			
+			String shape="";
+			shape+="<line x1=\"25\" y1=\"25\" x2=\""+(25+drawingWidth*0.75)+"\" y2=\"0.25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+drawingWidth*0.75)+"\" y1=\"25\" x2=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\"25\" y2=\"25\"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\"25\" x2=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(30+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+			
+			return new Question("<svg width=\""+(constrainingSquareLength+100)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
+				shape + 
+				"<text x=\""+(drawingWidth-drawingWidth*0.75/2+15)+"\" y=\""+(drawingHeight+40)+"\">"+w+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
+				"<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+25)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n" +
+				"</svg>","image/svg+xml","What is the area of this parallelogram in "+AREA_UNITS[unit]+".","text/plain",""+area,dimensions,4);
+		}
+		case 2: { // trapezoid
+			int wBase = RANDOM.nextInt(1000)+10;
+			int wTop = RANDOM.nextInt(wBase-6)+1;
+			int wLeft = RANDOM.nextInt(wBase-wTop);
+			int h = RANDOM.nextInt(1000)+1;
+			if((wBase+wTop)%2==1)
+				wTop++;
+			
+			int max = Math.max(wBase, h);
+			int area = (wBase+wTop)*h/2;
+			int unit = RANDOM.nextInt(LENGTH_UNITS.length);
+
+			int drawingWidth = Math.max(constrainingSquareLength*wBase/max,15);
+			int drawingHeight = Math.max(constrainingSquareLength*h/max,15);
+			
+			String shape="";
+			shape+="<line x1=\""+(25+wLeft*drawingWidth/wBase)+"\" y1=\"30\" x2=\""+(25+(wLeft+wTop)*drawingWidth/wBase)+"\" y2=\"30\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+(wLeft+wTop)*drawingWidth/wBase)+"\" y1=\"30\" x2=\""+(25+drawingWidth)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+drawingWidth)+"\" y1=\""+(30+drawingHeight)+"\" x2=\"25\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\"25\" y1=\""+(30+drawingHeight)+"\" x2=\""+(25+wLeft*drawingWidth/wBase)+"\" y2=\"30\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(30+drawingWidth)+"\" y1=\"30\" x2=\""+(30+drawingWidth)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+			shape+="<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+30)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			shape+="<text x=\""+(25+wLeft+wTop/2)+"\" y=\""+25+"\">"+wTop+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			if(RANDOM.nextBoolean()) { // Base by parts?
+				if(wLeft>0) {
+					shape+="<line x1=\"25\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+wLeft*drawingWidth/wBase)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+					shape+="<text x=\"15\" y=\""+(drawingHeight+45)+"\">"+wLeft+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+				}
+				int wRight=wBase-wLeft-wTop;
+				if(wRight>0) {
+					shape+="<line x1=\""+(25+drawingWidth-wRight*drawingWidth/wBase)+"\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+drawingWidth)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+					shape+="<text x=\""+(25+drawingWidth-5)+"\" y=\""+(drawingHeight+45)+"\">"+wRight+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+				}
 			}
 			else {
-				if(i==0) {
-					placeValues[i] = RANDOM.nextInt(9)+1;
-				}
-				else {
-					placeValues[i] = RANDOM.nextInt(10);
-				}
-				if((!pickValueForPlace)&&(placeValues[i] == placeValue)) {
-					if(placeValue==9) {
-						placeValues[i]--;
-					}
-					else {
-						placeValues[i]++;
-					}
-				}
+				shape+="<text x=\""+(drawingWidth-drawingWidth*0.75/2+15)+"\" y=\""+(drawingHeight+45)+"\">"+wBase+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
 			}
-			number+=placeValues[i];
-			if((i+1)%3 == 0) {
-				if((i+1)/3 == 3) {
-					number+=".";
-				}
-				else if((i+1)/3 < 3) {
-					number+=",";
-				}
-			}
+			
+			return new Question("<svg width=\""+(constrainingSquareLength+100)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
+				shape + 
+				"</svg>","image/svg+xml","What is the area of this trapezoid in "+AREA_UNITS[unit]+".","text/plain",""+area,dimensions,4);
 		}
-		String[] placeArray = RANDOM.nextBoolean()?PLACE_VALUE_VOCABULARY:PLACE_VALUE_VOCABULARY_ABBR;
-		
-		if(pickValueForPlace) // Get the digit for the place value
-			return new Question("You are given this number: "+number,"text/plain","What digit is in the "+placeArray[place]+" place?","text/plain",""+placeValue,dimensions,4);
-
-		// Get the place value for the digit.
-		ArrayList<Choice> choiceOptions = new ArrayList<>(12);
-		for(int i=0;i<12;i++)
-			choiceOptions.add(new Choice("text/plain", ""+placeArray[i], ""+i));
-		Choice correctChoice = choiceOptions.remove(place);
-		ArrayList<Choice> choices = new ArrayList<>(4);
-		for(int i=0;i<3;i++)
-			choices.add(choiceOptions.remove(RANDOM.nextInt(choiceOptions.size())));
-		choices.add(RANDOM.nextInt(4), correctChoice);
-		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of the following words describes the place value of the digit "+placeValues[place]+"?", choices);
-		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-		
-		return new Question("You are given this number: "+number,"text/plain",answerPrompt,"choice/radio",""+place,dimensions,4);
+		default: { // triangle
+			int w = RANDOM.nextInt(1000)+1;
+			int h = RANDOM.nextInt(1000)+1;
+			int area = w*h/2;
+			int unit = RANDOM.nextInt(LENGTH_UNITS.length);
+			
+			int triangleType = RANDOM.nextInt(3);
+			String shape="";
+			shape+="<text x=\"130\" y=\"75\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			switch(triangleType) {
+			case 0: // Right
+				shape+="<line x1=\"125\" y1=\"25\" x2=\"125\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"125\" y1=\"125\" x2=\"25\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"25\" y1=\"125\" x2=\"125\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<text x=\"70\" y=\"155\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+				break;
+			case 1: // Point over base
+				shape+="<line x1=\"90\" y1=\"25\" x2=\"125\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"125\" y1=\"125\" x2=\"25\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"25\" y1=\"125\" x2=\"90\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<text x=\"70\" y=\"155\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+				break;
+			default: // Point off to the side of the base
+				shape+="<line x1=\"125\" y1=\"25\" x2=\"90\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"90\" y1=\"125\" x2=\"25\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"25\" y1=\"125\" x2=\"125\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+				shape+="<line x1=\"25\" y1=\"130\" x2=\"90\" y2=\"130\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+				shape+="<text x=\"55\" y=\"160\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+				break;
+			}
+			return new Question("<svg width=\""+(constrainingSquareLength+100)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
+					shape + 
+					"</svg>","image/svg+xml","What is the area of this triangle in "+AREA_UNITS[unit]+".","text/plain",""+area,dimensions,4);
+		}
+		}
 	}
 	
 	private Question generatePrimeNumberQuestion(){
 		HashMap<String,Float> dimensions = new HashMap<>();
-		int primePosition = RANDOM.nextInt(4);
+		
+		boolean manyChoice = RANDOM.nextBoolean();
+		
+		if(manyChoice) {
+			int primePosition = RANDOM.nextInt(4);
+			
+			ArrayList<Choice> choices = new ArrayList<>(4);
+			HashSet<Integer> generatedComposites = new HashSet<>();
+			for(int i=0;i<4;i++) {
+				if(i==primePosition) {
+					choices.add(new Choice("text/plain", ""+PRIME_NUMBERS[RANDOM.nextInt(PRIME_NUMBERS.length)], ""+i));
+					continue;
+				}
+				if(RANDOM.nextBoolean()) {
+					int composite = getCompositeNumber();
+					while(generatedComposites.contains(composite))
+						composite = getCompositeNumber();
+					generatedComposites.add(composite);
+					choices.add(new Choice("text/plain", ""+composite, ""+i));
+					continue;
+				}
+			}
+			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of these numbers is prime.", choices);
+			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+			
+			return new Question("Here is a list of numbers.","text/plain",answerPrompt,"choice/radio",""+primePosition,dimensions,4);
+		}
+		
+		boolean prime = RANDOM.nextBoolean();
+		int number = prime?PRIME_NUMBERS[RANDOM.nextInt(PRIME_NUMBERS.length)]:getCompositeNumber();
+		boolean isPrimeQuestion = RANDOM.nextBoolean();
+		String answer = (isPrimeQuestion^prime)?"n":"y";
 		
 		ArrayList<Choice> choices = new ArrayList<>(4);
-		for(int i=0;i<4;i++) {
-			if(i==primePosition) {
-				choices.add(new Choice("text/plain", ""+PRIME_NUMBERS[RANDOM.nextInt(30)], ""+i));
-				continue;
-			}
-			if(RANDOM.nextBoolean()) {
-				choices.add(new Choice("text/plain", ""+(PRIME_NUMBERS[RANDOM.nextInt(6)]*PRIME_NUMBERS[RANDOM.nextInt(6)]*PRIME_NUMBERS[RANDOM.nextInt(6)]), ""+i));
-				continue;
-			}
-			choices.add(new Choice("text/plain", ""+(PRIME_NUMBERS[RANDOM.nextInt(12)]*PRIME_NUMBERS[RANDOM.nextInt(12)]), ""+i));
-		}
-		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of these numbers is prime.", choices);
+		choices.add(new Choice("text/plain", "Yes", "y"));
+		choices.add(new Choice("text/plain", "No", "n"));
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", ""+number, choices);
 		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
+		return new Question(isPrimeQuestion?"Is this number prime?":"Is this number composite?","text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
+	}
+	
+	private Question generateCommonDenominatorOrMultipleQuestion(){
+		HashMap<String,Float> dimensions = new HashMap<>();
 		
-		return new Question("Here is a list of numbers.","text/plain",answerPrompt,"choice/radio",""+primePosition,dimensions,4);
+		boolean isDenominatorQuestion = RANDOM.nextBoolean();
+		
+		if(isDenominatorQuestion) {
+			int gcd = RANDOM.nextInt(15)+1;
+			int n = RANDOM.nextInt(13);
+			int a = gcd*PRIME_NUMBERS[n];
+			int b = gcd*PRIME_NUMBERS[(n+RANDOM.nextInt(12)+1)%13];
+			return new Question("","text/plain","What is the greatest common denominator of "+a+" and "+b+"?","text/plain",""+gcd,dimensions,4);
+		}
+		
+        int[] primePool	= new int[6];
+        System.arraycopy(PRIME_NUMBERS, 0, primePool, 0, 6);
+        int n = RANDOM.nextInt(primePool.length);
+		int gcd = primePool[n];
+		primePool[n] = primePool[5];
+        n = RANDOM.nextInt(primePool.length-1);
+		int p1 = primePool[n];
+		primePool[n] = primePool[4];
+        n = RANDOM.nextInt(primePool.length-2);
+		int p2 = primePool[n];
+		int a = gcd*p1;
+		int b = gcd*p2;
+		int lcm = gcd*p1*p2;
+		return new Question("","text/plain","What is the least common multiple of "+a+" and "+b+"?","text/plain",""+lcm,dimensions,4);
+	}
+	
+	private int getCompositeNumber() {
+		int retval = 1;
+		int parts = RANDOM.nextInt(3)+2;
+		for(int i=0;(i<parts)&&(retval<125||i<2);i++) {
+			retval*=PRIME_NUMBERS[RANDOM.nextInt(13)];
+		}
+		return retval;
 	}
 	
 	/**
@@ -1240,85 +1338,260 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		}
 	}
 	
+	private class DecimalNumber{
+		int n;
+		int decimalPlaces;
+		
+		/**
+		 * 
+		 * @param n
+		 * @param decimalPlaces
+		 */
+		public DecimalNumber(int n, int decimalPlaces) {
+			super();
+			this.n = n;
+			this.decimalPlaces = decimalPlaces;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			String s = ""+n;
+			if(s.length()<=decimalPlaces) {
+				while(s.length()<decimalPlaces) {
+					s="0"+s;
+				}
+				s="0."+s;
+			}
+			else {
+				s = s.substring(0, s.length()-decimalPlaces)+"."+s.substring(s.length()-decimalPlaces);
+			}
+			return s;
+		}
+	}
+	
+	private class Expression{
+		private LinkedList<Object> parts = new LinkedList<>();
+		
+		/**
+		 * 
+		 * @param part Can either be a String, an Integer, a Long, a Float, a Double, or an Expression.
+		 *              Additionally A String must be proceeded by one of the other types, and the other types must either be first or be preceeded by a String.
+		 *              A String value must be one of the values contained in the ARITHMETIC_OPERATORS array.
+		 */
+		public void appendPart(Object part) {
+			if(part==this)
+				throw new IllegalArgumentException("Cannot add an expression to itself.");
+			if(part instanceof String) {
+				if((parts.size()==0)||(parts.getLast() instanceof String))
+					throw new IllegalArgumentException("Expression.appendPart can only append a String after an item with a numeric value.");
+				if(!Arrays.asList(ARITHMETIC_OPERATORS).contains(part))
+					throw new IllegalArgumentException("Expression.appendPart can only append a String that is a valid arithmetic operator.");
+			}
+			else{
+				if(!((part instanceof Number)||(part instanceof Expression)))
+					throw new IllegalArgumentException("Expression.appendPart can only accept String, Number, or Expression values.");
+				if((parts.size()>0)&&(!(parts.getLast() instanceof String)))
+					throw new IllegalArgumentException("Expression.appendPart can only place a Number, or Expression after a String, or as the first item in the expression.");
+			}
+			parts.add(part);
+		}
+		
+		/**
+		 * 
+		 * @return The value the expression evaluates to.
+		 */
+		public Number evaluate() {
+			if(parts.getLast() instanceof String)
+				throw new RuntimeException("evaluate() called on incomplete/invalid expression.");
+			LinkedList<Object> wipParts = new LinkedList<>();
+			String operation = "";
+			for(Object part:parts) {
+				if(part instanceof String) {
+					wipParts.add(part);
+					continue;
+				}
+				Number n;
+				if(part instanceof Number)
+					n = (Number)part;
+				else
+					n = ((Expression)part).evaluate();
+				if((operation == MULTIPLICATION_OPERATOR)||(operation == DIVISION_OPERATOR)) {
+					wipParts.removeLast(); // Remove operator
+					Number n1 = (Number)wipParts.removeLast();
+					wipParts.add(operate(n1,operation,n));
+				}
+				else {
+					wipParts.add(n);
+				}
+			}
+			Number sum = (Number)wipParts.removeFirst();
+			while(wipParts.size()>0) {
+				String operator = (String)wipParts.removeFirst();
+				Number n = (Number)wipParts.removeFirst();
+				sum = operate(sum, operator,n);
+			}
+			return sum;
+		}
+		
+		/**
+		 * 
+		 * @return The value the expression evaluates to.
+		 */
+		public Number evaluateWrong() {
+			if(parts.getLast() instanceof String)
+				throw new RuntimeException("evaluateWrong() called on incomplete/invalid expression.");
+			LinkedList<Object> wipParts = new LinkedList<>();
+			int i=0;
+			String operation = "";
+			Number value=null;
+			for(Object part:parts) {
+				if(value==null) {
+					value = (Number)part;
+					continue;
+				}
+				if(part instanceof String) {
+					operation = (String)part;
+					continue;
+				}
+				Number n;
+				if(part instanceof Number)
+					n = (Number)part;
+				else
+					n = ((Expression)part).evaluateWrong();
+				value = operate(value,operation,n);
+			}
+			return value;
+		}
+		
+		private Number operate(Number n1, String operator, Number n2) {
+			if(operator.equals(MULTIPLICATION_OPERATOR)) {
+				if(((n2 instanceof Long)||(n2 instanceof Integer))&&((n1 instanceof Long)||(n1 instanceof Integer))) {
+					return n1.longValue()*n2.longValue();
+				}
+				else {
+					return n1.doubleValue()*n2.doubleValue();
+				}
+			}
+			else if(operator.equals(DIVISION_OPERATOR)) {
+				return n1.doubleValue()/n2.doubleValue();
+			}
+			else if(operator.equals(ADDITION_OPERATOR)) {
+				if(((n1 instanceof Long)||(n1 instanceof Integer))&&((n2 instanceof Long)||(n2 instanceof Integer))) {
+					return n1.longValue()+n2.longValue();
+				}
+				else {
+					return n1.doubleValue()+n2.doubleValue();
+				}
+			}
+			else if(operator.equals(ADDITION_OPERATOR)) {
+				if(((n1 instanceof Long)||(n1 instanceof Integer))&&((n2 instanceof Long)||(n2 instanceof Integer))) {
+					return n1.longValue()-n2.longValue();
+				}
+				else {
+					return n1.doubleValue()-n2.doubleValue();
+				}
+			}
+			else {
+				throw new IllegalArgumentException("Invalid operator used: "+operator);
+			}
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			String retval="";
+			for(Object part:parts) {
+				if(retval.length()>0)
+					retval+=" ";
+				if(part instanceof Expression)
+					retval+="("+part.toString()+")";
+				else
+					retval+=part.toString();
+			}
+			return retval;
+		}
+	}
+	
 	/**
-	 * Place value. (0.001 to 100,000,000)
-	 * Rounding numbers
-	 * Rounding numbers to solve story problems.
+	 * Addition (decimals and fractions)
+	 * Subtraction (decimals and fractions)
+	 * Multiplication (decimals and fractions)
+	 * Division (decimals and fractions)
 	 * 
-	 * Addition (sums to under 100,000. Decimals to 0.001)
-	 * Subtraction (to under 100,000.  Decimals to 0.001)
-	 * Multiplication (Three decimal places to 100's * three decimal places to 100's.  Decimals to 0.01)
-	 * Division (Up to five digits up to 1000's divided by two digits up to 10's.  Decimals to 0.01)
-	 * Multistep expressions (up to 4 steps, possibly with a variable, which has a value defined separately)
-	 *  - Order of operations: +, -, *, /, (), [], {}, exponents
+	 * Least common multiple
+	 * Greatest common denominator
+	 * Prime factorization
+	 * Distinguishing prime/composite numbers
+	 * Distributive property
+	 * 
+	 * Problem solve with decimals
+	 * Integers and rational numbers
+	 * Comparing rational numbers
+	 * Opposite and absolute value
+	 * Coordinate plane
+	 * Finding distance in the coordinate plane.
+	 * 
+	 * Order of operations
+	 * Evaluating expressions
+	 * 
+	 * --------
+	 * 
+	 * R/W algebraic expressions
+	 * Equivalent expressions
+	 * 
+	 * Compare expressions
+	 * --------
+	 * Solve equations by substitution
+	 * R/W Equations
+	 * Solve equations
+	 * Equations in 2 variables
+	 * --------
+	 * Inequalities
+	 * Solve inequalities by substitution
+	 * 
+	 * Basic ratio use
+	 * Basic rate use
+	 * Ratio table fill-in-the-blank
+	 * Determine equivalent ratios
+	 * Unit pricing and constant speed
+	 * Solve word problems with rates
+	 * Convert Metric system units
+	 * Convert English system units
+	 * Convert between metric/english
+	 * Multi-step problems with unit conversion
+	 * 
+	 * Percent equations and circle graphs
 	 *
-	 * Comparing angles
-	 * Vocabulary:
-	 *  - ray
-	 *  - angle
-	 *  - vertex
-	 *  - acute
-	 *  - obtuse
-	 *  - right
-	 *  - straight
-	 *  - perpendicular
-	 *  - parallel
-	 *  - isosceles triangle
-	 *  - equilateral triangle
-	 *  - right triangle
-	 *  - parallelogram
-	 *  - rectangle
-	 *  - rhombus
-	 *  - square
-	 *  - trapezoid
-	 * Recognizing rays by pair of vertices on ray line.
-	 * Recognizing angles by sets of three vertices on lines.
-	 * Angles in triangles and quadrilaterals.
-	 *  - Triangles: 180 degrees total
-	 *  - Quadrilaterals: 360 degrees total
+	 * ---
+	 * Find area of:
+	 *  - Rectangle
+	 *  - Parallelogram
+	 *  - Triangle
+	 *  - Trapezoid
 	 * 
-	 * Fraction multiplication
-	 *  - integer and fraction
-	 *  - fraction and fraction
-	 * Fraction division (integer and fraction)
-	 * Fractions as division
-	 * Add/subtract fractions
+	 * Surface area
+	 * Volume with unit cubes
+	 * Volume of rectangular prism
+	 * ---
 	 * 
-	 * Comparing decimals (to hundredths)
-	 * Multiply/divide by powers of 10 (10^n or 1000. 0.001 to 100,000)
+	 * Line plots
+	 * Create/interpret histograms
+	 * Stem-and-leaf plots
+	 * Create/interpret box+whisker plot
 	 * 
-	 * Variables in simple equations (one operator and an equals sign)
-	 * Understanding 6t as an alternative to 6*t
-	 * 
-	 * Vocabulary:
-	 *  - x-axis
-	 *  - y-axis
-	 *  - origin
-	 *  - ordered pair
-	 * Finding coordinate locations on a 2-D graph
-	 * Graphing linear equations.
-	 * 
-	 * Vocabulary:
-	 *  - perimeter
-	 *  - area
-	 *  - volume
-	 *  - cube
-	 *  - prism
-	 *  - meter, m
-	 *  - square meter, m^2
-	 *  - cubic meter, m^3
-	 *  - centimeter, cm
-	 *  - square centimeter, cm^2
-	 *  - cubic centimeter, cm^3
-	 *  - feet, ft
-	 *  - yard, yd
-	 *  - millimeter, mm
-	 * Perimeters of rectangles, squares.
-	 * Perimeters of freeform shapes with given edge lengths.
-	 * Surface area of cubes and prisms.
-	 * Volume of cubes and prisms.
-	 * Volume of composite shapes.
-	 * Estimating area of irregular shapes with a grid overlayed.
+	 * ---
+	 * Median
+	 * Mean
+	 * ---
+	 * Weighted Average
+	 * Interquartile Range + Outliers
+	 * Mean Absolute Deviation
+	 * Examine/summarize distributions
 	 * 
 	 */
 }

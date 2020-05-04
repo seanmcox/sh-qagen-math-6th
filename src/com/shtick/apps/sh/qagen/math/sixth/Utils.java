@@ -16,9 +16,9 @@ public class Utils {
 	
 	/**
 	 * 
-	 * @param array
-	 * @param count
-	 * @return
+	 * @param array The source array.
+	 * @param count An element that can be used to constrain the size of the returned array.
+	 * @return An array of size min(array.length,count) consisting of elements randomly selected from the source array. (Each element of the source array will be selected only once.)
 	 */
 	public static <T> T[] getRandomArray(T[] array,int count) {
 		ArrayList<T> temp = new ArrayList<>();

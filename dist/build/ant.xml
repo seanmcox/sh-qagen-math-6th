@@ -21,6 +21,6 @@
     </target>
 
     <target name="jar_and_bundle" depends="jar">
-        <copy file="../install/sh.subject.math.5th.jar" todir="${dir.workspace}/sh-main/dist/install/bundle"/>
+        <copy file="../install/sh.subject.math.6th.jar" todir="${dir.workspace}/sh-main/dist/install/bundle"/>
     </target>
 </project>
