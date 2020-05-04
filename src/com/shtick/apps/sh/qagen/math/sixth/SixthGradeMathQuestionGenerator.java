@@ -74,7 +74,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 	private static final String[] PLACE_VALUE_VOCABULARY = new String[] {"hundred millions","ten millions","millions","hundred thousands","ten thousands","thousands","hundreds","tens","ones","tenths","hundredths","thousandths"};
 	private static final String[] PLACE_VALUE_VOCABULARY_ABBR = new String[] {"100,000,000s","10,000,000s","1,000,000s","100,000s","10,000s","1,000s","100s","10s","1s","10ths","100ths","1,000ths"};
 	private static final int[] PRIME_NUMBERS = new int[] {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199};
-	private static final Subject subject = new Subject("com.shtick.math.5th");
+	private static final Subject subject = new Subject("com.shtick.math.6th");
 	private static final HashMap<String,String> dimensionDescriptions = new HashMap<>();
 
 	/* (non-Javadoc)
@@ -166,8 +166,10 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			digitsA[i] = d;
 			digitsB[i] = d;
 		}
-		digitsA[deltaPlace] = RANDOM.nextInt(10);
-		digitsB[deltaPlace] = digitsA[deltaPlace]+RANDOM.nextInt(9)+1;
+		if(deltaPlace<numberDigits) {
+			digitsA[deltaPlace] = RANDOM.nextInt(10);
+			digitsB[deltaPlace] = digitsA[deltaPlace]+RANDOM.nextInt(9)+1;
+		}
 		for(int i=deltaPlace+1;i<numberDigits;i++) {
 			digitsA[i] = RANDOM.nextInt(10);
 			digitsB[i] = RANDOM.nextInt(10);
@@ -236,11 +238,11 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		String question;
 		if(absoluteValue) {
 			answer = ""+Math.abs(i);
-			question = "What is the absolute value of this number?";
+			question = "What is the absolute value of the above number?";
 		}
 		else {
 			answer = ""+(-i);
-			question = "What is the opposite value of this number?";
+			question = "What is the opposite value of the above number?";
 		}
 		if(RANDOM.nextBoolean()) {
 			return new Question(""+i,"text/plain",question,"text/plain",answer,dimensions,4);
@@ -262,9 +264,9 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		ArrayList<Choice> choices = new ArrayList<>(4);
 		for(Choice choice:choiceArray)
 			choices.add(choice);
-		MultipleChoice multipleChoice = new MultipleChoice("text/plain", "", choices);
+		MultipleChoice multipleChoice = new MultipleChoice("text/plain", question, choices);
 		String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
-		return new Question("Which is true?","text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
+		return new Question(""+i,"text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
 	}
 	
 	private Question generateCoordinatePlaneDistanceQuestion() {
@@ -275,11 +277,13 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			point2 = new Point(RANDOM.nextInt(21)-10,RANDOM.nextInt(21)-10);
 		
 		String svg = getCoordinatePlaneDrawing(point1, point2);
-		String answer =""+Math.sqrt((point1.x-point2.x)*(point1.x-point2.x)+(point1.y-point2.y)*(point1.y-point2.y));
+		double answerValue = Math.sqrt((point1.x-point2.x)*(point1.x-point2.x)+(point1.y-point2.y)*(point1.y-point2.y));
+		String answer =""+answerValue;
 		String[] choiceArray = new String[] {
 			answer,
-			""+(Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y)),
-			""+(Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y))/2
+			""+((Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y))-(RANDOM.nextBoolean()?RANDOM.nextDouble():0)),
+			""+(Math.abs(point1.x-point2.x)+Math.abs(point1.y-point2.y))/2,
+			""+(RANDOM.nextBoolean()?(answerValue+RANDOM.nextDouble()):(answerValue-RANDOM.nextDouble()))
 		};
 		choiceArray = Utils.getRandomArray(choiceArray, choiceArray.length);
 		ArrayList<Choice> choices = new ArrayList<>(4);
@@ -338,56 +342,57 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 				valueList += ", ";
 			valueList+=value;
 		}
-		return new Question("","image/svg+xml",answerPrompt,"choice/radio",answer,dimensions,4);
+		return new Question(valueList,"text/plain",answerPrompt,"choice/radio",answer,dimensions,4);
 	}
 	
 	private String getCoordinatePlaneDrawing(Point ... points) {
 		String axes = "<line x1=\"50\" y1=\"5\" x2=\"50\" y2=\"95\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
 				"<line x1=\"5\" y1=\"50\" x2=\"95\" y2=\"50\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\"50\" y1=\"5\" x2=\"55\" y2=\"10\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\"50\" y1=\"5\" x2=\"45\" y2=\"10\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"50\" x2=\"10\" y2=\"55\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"50\" x2=\"10\" y2=\"45\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
-		String grid = "<line x1=\"5\" y1=\"5\" x2=\"5\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"10\" y1=\"5\" x2=\"10\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"15\" y1=\"5\" x2=\"15\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"20\" y1=\"5\" x2=\"20\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"25\" y1=\"5\" x2=\"25\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"30\" y1=\"5\" x2=\"30\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"35\" y1=\"5\" x2=\"35\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"40\" y1=\"5\" x2=\"40\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"45\" y1=\"5\" x2=\"45\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"55\" y1=\"5\" x2=\"55\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"60\" y1=\"5\" x2=\"60\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"65\" y1=\"5\" x2=\"65\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"70\" y1=\"5\" x2=\"70\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"75\" y1=\"5\" x2=\"75\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"80\" y1=\"5\" x2=\"80\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"85\" y1=\"5\" x2=\"85\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"90\" y1=\"5\" x2=\"90\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"95\" y1=\"5\" x2=\"95\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"5\" x2=\"95\" y2=\"5\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"10\" x2=\"95\" y2=\"10\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"15\" x2=\"95\" y2=\"15\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"20\" x2=\"95\" y2=\"20\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"25\" x2=\"95\" y2=\"25\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"30\" x2=\"95\" y2=\"30\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"35\" x2=\"95\" y2=\"35\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"40\" x2=\"95\" y2=\"40\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"45\" x2=\"95\" y2=\"45\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"55\" x2=\"95\" y2=\"55\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"60\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"65\" x2=\"95\" y2=\"65\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"70\" x2=\"95\" y2=\"70\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"75\" x2=\"95\" y2=\"75\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"80\" x2=\"95\" y2=\"80\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"85\" x2=\"95\" y2=\"85\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"90\" x2=\"95\" y2=\"90\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n"+
-				"<line x1=\"5\" y1=\"95\" x2=\"95\" y2=\"95\" style=\"stroke:rgb(32,32,32);stroke-width:2\" />\n";
+				"<line x1=\"50\" y1=\"5\" x2=\"54\" y2=\"9\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"50\" y1=\"5\" x2=\"46\" y2=\"9\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"50\" x2=\"9\" y2=\"56\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"5\" y1=\"50\" x2=\"9\" y2=\"46\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"50\" y1=\"95\" x2=\"54\" y2=\"91\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"50\" y1=\"95\" x2=\"46\" y2=\"91\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"95\" y1=\"50\" x2=\"91\" y2=\"56\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
+				"<line x1=\"95\" y1=\"50\" x2=\"91\" y2=\"46\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n";
+		String grid = 
+				"<line x1=\"10\" y1=\"5\" x2=\"10\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"15\" y1=\"5\" x2=\"15\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"20\" y1=\"5\" x2=\"20\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"25\" y1=\"5\" x2=\"25\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"30\" y1=\"5\" x2=\"30\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"35\" y1=\"5\" x2=\"35\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"40\" y1=\"5\" x2=\"40\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"45\" y1=\"5\" x2=\"45\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"55\" y1=\"5\" x2=\"55\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"60\" y1=\"5\" x2=\"60\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"65\" y1=\"5\" x2=\"65\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"70\" y1=\"5\" x2=\"70\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"75\" y1=\"5\" x2=\"75\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"80\" y1=\"5\" x2=\"80\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"85\" y1=\"5\" x2=\"85\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"90\" y1=\"5\" x2=\"90\" y2=\"95\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"10\" x2=\"95\" y2=\"10\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"15\" x2=\"95\" y2=\"15\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"20\" x2=\"95\" y2=\"20\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"25\" x2=\"95\" y2=\"25\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"30\" x2=\"95\" y2=\"30\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"35\" x2=\"95\" y2=\"35\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"40\" x2=\"95\" y2=\"40\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"45\" x2=\"95\" y2=\"45\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"55\" x2=\"95\" y2=\"55\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"60\" x2=\"95\" y2=\"60\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"65\" x2=\"95\" y2=\"65\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"70\" x2=\"95\" y2=\"70\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"75\" x2=\"95\" y2=\"75\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"80\" x2=\"95\" y2=\"80\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"85\" x2=\"95\" y2=\"85\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n"+
+				"<line x1=\"5\" y1=\"90\" x2=\"95\" y2=\"90\" style=\"stroke:rgb(200,200,200);stroke-width:1.5\" />\n";
 		String pointDrawing = "";
 		for(Point point:points)
 			pointDrawing+="<circle cx=\""+((point.x*5)+50)+"\" cy=\""+(50-(point.y*5))+"\" r=\"3\" stroke=\"black\" stroke-width=\"1\" fill=\"black\" />\n";
-		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+axes+grid+pointDrawing+"</svg>";
+		return "<svg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n"+grid+axes+pointDrawing+"</svg>";
 	}
 
 	private Question generateDecimalOperationQuestion(){
@@ -505,8 +510,16 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 	}
 	
 	private static String simplifiedFraction(int numerator, int denominator) {
+		boolean negative = (numerator<0)^(denominator<0);
+		numerator = Math.abs(numerator);
+		denominator = Math.abs(denominator);
 		int gcd = gcd(numerator,denominator);
-		return ""+(numerator/gcd)+"/"+(denominator/gcd);
+		String retval = ""+(numerator/gcd)+"/"+(denominator/gcd);
+		if(retval.endsWith("/1"))
+			retval = retval.substring(0, retval.length()-2);
+		if(negative)
+			retval = "-"+retval;
+		return retval;
 	}
 	
 	/**
@@ -581,34 +594,38 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
     	answerList.add(expression.evaluateWrong());
     	answerList.add(flatExpression.evaluate());
     	answerList.add(flatExpression.evaluateWrong());
+    	System.out.println(expression.toString());
+    	System.out.println(flatExpression.toString());
+    	System.out.println(Arrays.toString(answerList.toArray()));
     	Collections.<Number>sort(answerList,(Number a, Number b)->{
     		double d1=a.doubleValue();
     		double d2=b.doubleValue();
     		if(d1<d2)
     			return -1;
-    		else if(d1>d2)
+    		if(d1>d2)
     			return 1;
     		return 0;
     	});
+    	System.out.println(Arrays.toString(answerList.toArray()));
     	ListIterator<Number> answerIterator = answerList.listIterator();
-    	Number last = answerIterator.next();
+    	Number previous = answerIterator.next();
     	while(answerIterator.hasNext()) {
     		Number next = answerIterator.next();
-    		double delta = next.doubleValue()-last.doubleValue();
+    		double delta = next.doubleValue()-previous.doubleValue();
     		if(delta<0.1) {
     			if(next==answer) {
     				answerIterator.previous();
     				answerIterator.previous();
     				answerIterator.remove();
     				answerIterator.next();
-    				last = next;
+    				previous = next;
     			}
     			else {
     				answerIterator.remove();
     			}
     		}
     		else {
-    			last = next;
+    			previous = next;
     		}
     	}
     	while(answerList.size()<4) {
@@ -638,16 +655,43 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		HashMap<String,Float> dimensions = new HashMap<>();
 		int x = RANDOM.nextInt(11)-5;
 		int y = RANDOM.nextInt(11)-5;
-    	int[] eq1 = new int[] {RANDOM.nextInt(11)-5,RANDOM.nextInt(11)-5};
-    	int[] eq2 = new int[] {RANDOM.nextInt(11)-5,RANDOM.nextInt(11)-5};
+    	int[] eq1 = new int[] {RANDOM.nextInt(9)+1,RANDOM.nextInt(9)+1};
+    	int[] eq2 = new int[] {RANDOM.nextInt(9)+1,RANDOM.nextInt(9)+1};
+    	for(int i=0;i<eq1.length;i++)
+    		if(RANDOM.nextBoolean())
+    			eq1[i]=-eq1[i];
+    	for(int i=0;i<eq2.length;i++)
+    		if(RANDOM.nextBoolean())
+    			eq2[i]=-eq2[i];
+    	if(simplifiedFraction(eq1[0], eq1[1])==simplifiedFraction(eq1[0], eq1[1]))
+			eq2[0]=-eq2[0];
     	int c1 = eq1[0]*x+eq1[1]*y;
     	int c2 = eq2[0]*x+eq2[1]*y;
     	boolean solveForX = RANDOM.nextBoolean();
     	String answer = ""+(solveForX?x:y);
-    	String eqString1 = eq1[0]+"x "+((eq1[1]<0)?"-":"+")+" "+Math.abs(eq1[1])+"y = "+c1;
-    	String eqString2 = eq2[0]+"x "+((eq2[1]<0)?"-":"+")+" "+Math.abs(eq2[1])+"y = "+c2;
+    	char[] variables = new char[] {'x','y'};
+    	String eqString1 = stringifyMultivariateEquation(eq1,c1,variables);
+    	String eqString2 = stringifyMultivariateEquation(eq2,c2,variables);
     	
 		return new Question(eqString1+"\n"+eqString2,"text/plain","What is the value of "+(solveForX?"x":"y")+"?","text/plain",answer,dimensions,4);
+    }
+    
+    private String stringifyMultivariateEquation(int[] coefficients, int constantSum, char[] variables) {
+    	if(variables.length<coefficients.length)
+    		throw new IllegalArgumentException("Not enough variables identified for the coefficients.");
+    	String retval = "";
+    	for(int i=0;i<coefficients.length;i++) {
+    		if(coefficients[i]==0)
+    			continue;
+    		if(retval.length()==0) {
+    			retval += ""+coefficients[i]+""+variables[i];
+    			continue;
+    		}
+    		retval += (coefficients[i]<0)?" - ":" + ";
+			retval += ""+Math.abs(coefficients[i])+""+variables[i];
+    	}
+    	retval += " = "+constantSum;
+    	return retval;
     }
     
     private String cleanDoubleString(double d) {
@@ -713,7 +757,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 						"<line x1=\"70\" y1=\"20\" x2=\"85\" y2=\"5\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
 						"<line x1=\"70\" y1=\"85\" x2=\"85\" y2=\"70\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
 						"<text x=\""+(35-4*widthText.length())+"\" y=\"84\">"+widthText+"</text>\n" +
-						"</svg>","image/svg+xml","What is the volume are of this cube in "+AREA_UNITS[unit]+"?","text/plain",""+answer,dimensions,4);
+						"</svg>","image/svg+xml","What is the volume are of this cube in "+VOLUME_UNITS[unit]+"?","text/plain",""+answer,dimensions,4);
 			}
 			return new Question("<svg width=\""+constrainingSquareLength+"\" height=\""+constrainingSquareLength+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
 					"<line x1=\"5\" y1=\"20\" x2=\"70\" y2=\"20\" style=\"stroke:rgb(0,0,0);stroke-width:2\" />\n"+
@@ -836,9 +880,9 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			shape+="<line x1=\"25\" y1=\"25\" x2=\""+(25+drawingWidth*0.75)+"\" y2=\"0.25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+drawingWidth*0.75)+"\" y1=\"25\" x2=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-			shape+="<line x1=\""+(25+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\"25\" y2=\"25\"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-			shape+="<line x1=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\"25\" x2=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
-			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(30+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(25+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\"25\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\"25\" x2=\""+(30+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
+			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(30+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 			
 			return new Question("<svg width=\""+(constrainingSquareLength+100)+"\" height=\""+(constrainingSquareLength+75)+"\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\">\n" + 
 				shape + 
@@ -866,17 +910,17 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			shape+="<line x1=\""+(25+(wLeft+wTop)*drawingWidth/wBase)+"\" y1=\"30\" x2=\""+(25+drawingWidth)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+drawingWidth)+"\" y1=\""+(30+drawingHeight)+"\" x2=\"25\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\"25\" y1=\""+(30+drawingHeight)+"\" x2=\""+(25+wLeft*drawingWidth/wBase)+"\" y2=\"30\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-			shape+="<line x1=\""+(30+drawingWidth)+"\" y1=\"30\" x2=\""+(30+drawingWidth)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+			shape+="<line x1=\""+(30+drawingWidth)+"\" y1=\"30\" x2=\""+(30+drawingWidth)+"\" y2=\""+(30+drawingHeight)+"\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 			shape+="<text x=\""+(drawingWidth+40)+"\" y=\""+(drawingHeight/2+30)+"\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
-			shape+="<text x=\""+(25+wLeft+wTop/2)+"\" y=\""+25+"\">"+wTop+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			shape+="<text x=\""+(25+(wLeft+wTop/2)*drawingWidth/wBase)+"\" y=\""+25+"\">"+wTop+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
 			if(RANDOM.nextBoolean()) { // Base by parts?
 				if(wLeft>0) {
-					shape+="<line x1=\"25\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+wLeft*drawingWidth/wBase)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+					shape+="<line x1=\"25\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+wLeft*drawingWidth/wBase)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 					shape+="<text x=\"15\" y=\""+(drawingHeight+45)+"\">"+wLeft+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
 				}
 				int wRight=wBase-wLeft-wTop;
 				if(wRight>0) {
-					shape+="<line x1=\""+(25+drawingWidth-wRight*drawingWidth/wBase)+"\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+drawingWidth)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+					shape+="<line x1=\""+(25+drawingWidth-wRight*drawingWidth/wBase)+"\" y1=\""+(35+drawingHeight)+"\" x2=\""+(25+drawingWidth)+"\" y2=\""+(35+drawingHeight)+"\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 					shape+="<text x=\""+(25+drawingWidth-5)+"\" y=\""+(drawingHeight+45)+"\">"+wRight+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
 				}
 			}
@@ -896,7 +940,8 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			
 			int triangleType = RANDOM.nextInt(3);
 			String shape="";
-			shape+="<text x=\"130\" y=\"75\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			shape+="<text x=\"135\" y=\"75\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
+			shape+="<line x1=\"130\" y1=\"25\" x2=\"130\" y2=\"125\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 			switch(triangleType) {
 			case 0: // Right
 				shape+="<line x1=\"125\" y1=\"25\" x2=\"125\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
@@ -914,7 +959,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 				shape+="<line x1=\"125\" y1=\"25\" x2=\"90\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 				shape+="<line x1=\"90\" y1=\"125\" x2=\"25\" y2=\"125\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 				shape+="<line x1=\"25\" y1=\"125\" x2=\"125\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
-				shape+="<line x1=\"25\" y1=\"130\" x2=\"90\" y2=\"130\" style=\"stroke:rgb(64,64,64);stroke-width:3\" />\n";
+				shape+="<line x1=\"25\" y1=\"130\" x2=\"90\" y2=\"130\" style=\"stroke:rgb(128,128,128);stroke-width:2\" />\n";
 				shape+="<text x=\"55\" y=\"160\">"+h+" "+LENGTH_UNITS_ABBR[unit]+"</text>\n";
 				break;
 			}
@@ -1365,7 +1410,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 				}
 				s="0."+s;
 			}
-			else {
+			else if(decimalPlaces>0){
 				s = s.substring(0, s.length()-decimalPlaces)+"."+s.substring(s.length()-decimalPlaces);
 			}
 			return s;
@@ -1410,6 +1455,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			String operation = "";
 			for(Object part:parts) {
 				if(part instanceof String) {
+					operation = (String)part;
 					wipParts.add(part);
 					continue;
 				}
@@ -1421,11 +1467,9 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 				if((operation == MULTIPLICATION_OPERATOR)||(operation == DIVISION_OPERATOR)) {
 					wipParts.removeLast(); // Remove operator
 					Number n1 = (Number)wipParts.removeLast();
-					wipParts.add(operate(n1,operation,n));
+					n = operate(n1,operation,n);
 				}
-				else {
-					wipParts.add(n);
-				}
+				wipParts.add(n);
 			}
 			Number sum = (Number)wipParts.removeFirst();
 			while(wipParts.size()>0) {
@@ -1443,11 +1487,11 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 		public Number evaluateWrong() {
 			if(parts.getLast() instanceof String)
 				throw new RuntimeException("evaluateWrong() called on incomplete/invalid expression.");
-			LinkedList<Object> wipParts = new LinkedList<>();
-			int i=0;
 			String operation = "";
 			Number value=null;
 			for(Object part:parts) {
+				if(part instanceof Expression)
+					part = ((Expression)part).evaluateWrong();
 				if(value==null) {
 					value = (Number)part;
 					continue;
@@ -1486,7 +1530,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 					return n1.doubleValue()+n2.doubleValue();
 				}
 			}
-			else if(operator.equals(ADDITION_OPERATOR)) {
+			else if(operator.equals(SUBTRACTION_OPERATOR)) {
 				if(((n1 instanceof Long)||(n1 instanceof Integer))&&((n2 instanceof Long)||(n2 instanceof Integer))) {
 					return n1.longValue()-n2.longValue();
 				}
