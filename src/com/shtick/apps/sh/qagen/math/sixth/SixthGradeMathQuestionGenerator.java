@@ -877,7 +877,7 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 			int drawingHeight = Math.max(constrainingSquareLength*h/max,15);
 			
 			String shape="";
-			shape+="<line x1=\"25\" y1=\"25\" x2=\""+(25+drawingWidth*0.75)+"\" y2=\"0.25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
+			shape+="<line x1=\"25\" y1=\"25\" x2=\""+(25+drawingWidth*0.75)+"\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+drawingWidth*0.75)+"\" y1=\"25\" x2=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+drawingWidth*0.75+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\""+(25+constrainingSquareLength*0.25)+"\" y2=\""+(25+drawingHeight)+"\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
 			shape+="<line x1=\""+(25+constrainingSquareLength*0.25)+"\" y1=\""+(25+drawingHeight)+"\" x2=\"25\" y2=\"25\" style=\"stroke:rgb(0,0,0);stroke-width:3\" />\n";
