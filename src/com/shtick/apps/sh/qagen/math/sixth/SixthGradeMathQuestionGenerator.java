@@ -4,8 +4,6 @@
 package com.shtick.apps.sh.qagen.math.sixth;
 
 import java.awt.Point;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -589,14 +587,12 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
     		}
     	}
     	Number answer = expression.evaluate();
-    	LinkedList<Number> answerList = new LinkedList<>();
-    	answerList.add(answer);
-    	answerList.add(expression.evaluateWrong());
-    	answerList.add(flatExpression.evaluate());
-    	answerList.add(flatExpression.evaluateWrong());
-    	System.out.println(expression.toString());
-    	System.out.println(flatExpression.toString());
-    	System.out.println(Arrays.toString(answerList.toArray()));
+    	HashSet<Number> answerSet = new HashSet<Number>();
+    	answerSet.add(answer);
+    	answerSet.add(expression.evaluateWrong());
+    	answerSet.add(flatExpression.evaluate());
+    	answerSet.add(flatExpression.evaluateWrong());
+    	LinkedList<Number> answerList = new LinkedList<>(answerSet);
     	Collections.<Number>sort(answerList,(Number a, Number b)->{
     		double d1=a.doubleValue();
     		double d2=b.doubleValue();
@@ -606,7 +602,6 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
     			return 1;
     		return 0;
     	});
-    	System.out.println(Arrays.toString(answerList.toArray()));
     	ListIterator<Number> answerIterator = answerList.listIterator();
     	Number previous = answerIterator.next();
     	while(answerIterator.hasNext()) {
@@ -633,11 +628,13 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
     		double adjustment = RANDOM.nextInt(3)+(1/(RANDOM.nextInt(4)+1));
     		if(prepend) {
     			double d = answerList.getFirst().doubleValue()-adjustment;
-    			answerList.addFirst(d);
+    			if(!answerList.contains(d))
+    				answerList.addFirst(d);
     		}
     		else {
     			double d = answerList.getFirst().doubleValue()+adjustment;
-    			answerList.addLast(d);
+    			if(!answerList.contains(d))
+    				answerList.addLast(d);
     		}
     	}
 		ArrayList<Choice> choices = new ArrayList<>(4);
@@ -985,14 +982,11 @@ public class SixthGradeMathQuestionGenerator implements SubjectQuestionGenerator
 					choices.add(new Choice("text/plain", ""+PRIME_NUMBERS[RANDOM.nextInt(PRIME_NUMBERS.length)], ""+i));
 					continue;
 				}
-				if(RANDOM.nextBoolean()) {
-					int composite = getCompositeNumber();
-					while(generatedComposites.contains(composite))
-						composite = getCompositeNumber();
-					generatedComposites.add(composite);
-					choices.add(new Choice("text/plain", ""+composite, ""+i));
-					continue;
-				}
+				int composite = getCompositeNumber();
+				while(generatedComposites.contains(composite))
+					composite = getCompositeNumber();
+				generatedComposites.add(composite);
+				choices.add(new Choice("text/plain", ""+composite, ""+i));
 			}
 			MultipleChoice multipleChoice = new MultipleChoice("text/plain", "Which of these numbers is prime.", choices);
 			String answerPrompt = JSONEncoder.encode(Marshal.marshal(multipleChoice));
